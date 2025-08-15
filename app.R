@@ -210,10 +210,12 @@ server <- function(input, output, session) {
       # Save text to database
       con <- get_db_connection()
       if (!is.null(con)) {
-        result <- dbExecute(con, 
-          "INSERT INTO texts (title, content) VALUES (?, ?)",
-          params = list(input$text_title, input$text_input)
-        )
+        # Escape strings to prevent SQL injection
+        safe_title <- dbQuoteString(con, input$text_title)
+        safe_content <- dbQuoteString(con, input$text_input)
+        
+        query <- paste0("INSERT INTO texts (title, content) VALUES (", safe_title, ", ", safe_content, ")")
+        result <- dbExecute(con, query)
         values$current_text_id <- dbGetQuery(con, "SELECT LAST_INSERT_ID() as id")$id[1]
         dbDisconnect(con)
       }
@@ -254,10 +256,14 @@ server <- function(input, output, session) {
       con <- get_db_connection()
       if (!is.null(con)) {
         tryCatch({
-          dbExecute(con, 
-            "INSERT INTO codes (name, description, color) VALUES (?, ?, ?)",
-            params = list(input$new_code_name, input$new_code_description, input$new_code_color)
-          )
+          # Escape strings to prevent SQL injection
+          safe_name <- dbQuoteString(con, input$new_code_name)
+          safe_desc <- dbQuoteString(con, input$new_code_description)
+          safe_color <- dbQuoteString(con, input$new_code_color)
+          
+          query <- paste0("INSERT INTO codes (name, description, color) VALUES (", 
+                         safe_name, ", ", safe_desc, ", ", safe_color, ")")
+          dbExecute(con, query)
           
           # Refresh codes
           codes <- dbReadTable(con, "codes")
@@ -283,10 +289,12 @@ server <- function(input, output, session) {
     if (!is.null(values$current_text_id) && values$selected_text != "" && !is.null(input$code_select)) {
       con <- get_db_connection()
       if (!is.null(con)) {
-        dbExecute(con, 
-          "INSERT INTO coded_segments (text_id, code_id, selected_text, start_pos, end_pos) VALUES (?, ?, ?, ?, ?)",
-          params = list(values$current_text_id, input$code_select, values$selected_text, 0, nchar(values$selected_text))
-        )
+        # Escape strings to prevent SQL injection
+        safe_text <- dbQuoteString(con, values$selected_text)
+        
+        query <- paste0("INSERT INTO coded_segments (text_id, code_id, selected_text, start_pos, end_pos) VALUES (",
+                       values$current_text_id, ", ", input$code_select, ", ", safe_text, ", 0, ", nchar(values$selected_text), ")")
+        dbExecute(con, query)
         dbDisconnect(con)
         
         showNotification("Code applied successfully!", type = "success")
