@@ -1,0 +1,8 @@
+shiny
+shinydashboard
+DT
+RMySQL
+DBI
+dplyr
+shinyjs
+colourpicker
